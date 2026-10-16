@@ -14,6 +14,12 @@ class InvalidInput(Exception):
     """Raised when an input file violates the frozen schema."""
 
 
+class _QuietArgumentParser(argparse.ArgumentParser):
+    def error(self, message: str) -> None:
+        # Parser diagnostics can contain caller paths or arbitrary argument values.
+        raise InvalidInput
+
+
 def _object_without_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
@@ -87,12 +93,11 @@ def evaluate(spans_text: str, policy_text: str) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate normalized span times against a duration budget.")
+    parser = _QuietArgumentParser(description="Validate normalized span times against a duration budget.")
     parser.add_argument("spans_jsonl")
     parser.add_argument("policy_json")
-    args = parser.parse_args()
-
     try:
+        args = parser.parse_args()
         result = evaluate(_read(args.spans_jsonl), _read(args.policy_json))
         code = 1 if result["status"] == "violations" else 0
     except InvalidInput:

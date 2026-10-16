@@ -86,3 +86,29 @@ def test_invalid_utf8_is_rejected(tmp_path):
     assert proc.returncode == 2
     assert proc.stdout == '{\"status\":\"invalid_input\"}\n'
     assert proc.stderr == ''
+
+
+@pytest.mark.parametrize("arguments", [
+    [], ["PRIVATE_PATH_MARKER"],
+    ["PRIVATE_PATH_MARKER", "PRIVATE_POLICY_MARKER", "PRIVATE_EXTRA_MARKER"],
+    ["PRIVATE_PATH_MARKER", "PRIVATE_POLICY_MARKER", "--PRIVATE_UNKNOWN_MARKER"],
+    ["--PRIVATE_UNKNOWN_MARKER=PRIVATE_VALUE_MARKER"],
+])
+def test_invalid_arguments_are_quiet(arguments):
+    import sysconfig
+    command = Path(sysconfig.get_path("scripts")) / ("span-time-gate.exe" if sys.platform == "win32" else "span-time-gate")
+    proc = subprocess.run([str(command), *arguments], capture_output=True, text=True)
+    assert proc.returncode == 2
+    assert proc.stdout == '{"status":"invalid_input"}\n'
+    assert proc.stderr == ''
+    assert 'PRIVATE_' not in proc.stdout + proc.stderr
+
+
+@pytest.mark.parametrize("flag", ["-h", "--help"])
+def test_help_remains_successful(flag):
+    import sysconfig
+    command = Path(sysconfig.get_path("scripts")) / ("span-time-gate.exe" if sys.platform == "win32" else "span-time-gate")
+    proc = subprocess.run([str(command), flag], capture_output=True, text=True)
+    assert proc.returncode == 0
+    assert 'usage:' in proc.stdout
+    assert proc.stderr == ''
