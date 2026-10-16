@@ -94,7 +94,13 @@ def test_invalid_utf8_is_rejected(tmp_path):
     ["PRIVATE_PATH_MARKER", "PRIVATE_POLICY_MARKER", "--PRIVATE_UNKNOWN_MARKER"],
     ["--PRIVATE_UNKNOWN_MARKER=PRIVATE_VALUE_MARKER"],
 ])
-def test_invalid_arguments_are_quiet(arguments):
+def test_invalid_arguments_are_quiet(arguments, tmp_path):
+    spans = tmp_path / "PRIVATE_PATH_MARKER.jsonl"
+    policy = tmp_path / "PRIVATE_POLICY_MARKER.json"
+    spans.write_text('{"start_ms":0,"end_ms":0}\n', encoding="utf-8")
+    policy.write_text('{"max_duration_ms":0}', encoding="utf-8")
+    replacements = {"PRIVATE_PATH_MARKER": str(spans), "PRIVATE_POLICY_MARKER": str(policy)}
+    arguments = [replacements.get(arg, arg) for arg in arguments]
     import sysconfig
     command = Path(sysconfig.get_path("scripts")) / ("span-time-gate.exe" if sys.platform == "win32" else "span-time-gate")
     proc = subprocess.run([str(command), *arguments], capture_output=True, text=True)
